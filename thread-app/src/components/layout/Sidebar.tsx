@@ -16,6 +16,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -50,6 +51,12 @@ const navItems = [
     label: "Bookings",
     href: "/dashboard/bookings",
     icon: CheckSquare,
+    group: "main",
+  },
+  {
+    label: "Approvals",
+    href: "/dashboard/approvals",
+    icon: Inbox,
     group: "main",
   },
   {
