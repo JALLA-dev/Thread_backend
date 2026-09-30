@@ -14,16 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 interface ReschedulePageProps {
-  params: {
+  params: Promise<{
     bookingId: string;
-  };
+  }>;
 }
 
 export const metadata = {
   title: "Reschedule Booking",
 };
 
-export default async function RescheduleBookingPage({ params }: ReschedulePageProps) {
+export default async function RescheduleBookingPage(props: ReschedulePageProps) {
+  const params = await props.params;
   const booking = await getBookingDetails(params.bookingId);
 
   if (!booking) {

@@ -11,7 +11,8 @@ export const metadata = {
   title: "Team Details - Thread",
 };
 
-export default async function TeamDetailsPage({ params }: { params: { teamId: string } }) {
+export default async function TeamDetailsPage(props: { params: Promise<{ teamId: string }> }) {
+  const params = await props.params;
   const user = await getCurrentUser();
 
   if (!user) {

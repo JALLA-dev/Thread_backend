@@ -15,16 +15,17 @@ const geistMono = Geist_Mono({
 });
 
 interface CancelPageProps {
-  params: {
+  params: Promise<{
     bookingId: string;
-  };
+  }>;
 }
 
 export const metadata = {
   title: "Cancel Booking",
 };
 
-export default async function CancelBookingPage({ params }: CancelPageProps) {
+export default async function CancelBookingPage(props: CancelPageProps) {
+  const params = await props.params;
   const booking = await getBookingDetails(params.bookingId);
 
   if (!booking) {

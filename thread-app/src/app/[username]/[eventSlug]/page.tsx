@@ -15,13 +15,14 @@ const geistMono = Geist_Mono({
 });
 
 interface BookingPageProps {
-  params: {
+  params: Promise<{
     username: string;
     eventSlug: string;
-  };
+  }>;
 }
 
-export async function generateMetadata({ params }: BookingPageProps) {
+export async function generateMetadata(props: BookingPageProps) {
+  const params = await props.params;
   const data = await getPublicEventDetails(params.username, params.eventSlug);
   
   if (!data) return { title: "Not Found" };
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: BookingPageProps) {
 
 // Note: This is an isolated public page, so it wraps itself in a clean layout
 // It shares the ThemeProvider so it matches the app's aesthetic.
-export default async function BookingPage({ params }: BookingPageProps) {
+export default async function BookingPage(props: BookingPageProps) {
+  const params = await props.params;
   const data = await getPublicEventDetails(params.username, params.eventSlug);
 
   if (!data) {
