@@ -117,54 +117,134 @@ export function CalendarClient({ isConnected = false }: { isConnected?: boolean 
 
   const renderWeekView = () => {
     const days = eachDayOfInterval({ start: viewStart, end: endOfWeek(currentDate) });
+    const hours = Array.from({ length: 24 }).map((_, i) => i);
+    const HOUR_HEIGHT = 48; // px
+
     return (
-      <div className="flex border border-[var(--border)] bg-[var(--background)]">
-        {days.map((day) => {
-          const dayEvents = events.filter(e => isSameDay(parseISO(e.start), day)).sort((a,b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-          return (
-            <div key={day.toISOString()} className="flex-1 min-h-[400px] border-r last:border-r-0 border-[var(--border)] p-2">
-              <div className="text-center mb-4 pb-2 border-b border-[var(--border)]">
-                <div className="text-xs font-semibold uppercase text-[var(--foreground-muted)]">{format(day, "EEE")}</div>
-                <div className={`text-lg mt-1 w-8 h-8 mx-auto flex items-center justify-center rounded-full ${isSameDay(day, new Date()) ? "bg-[var(--primary)] text-white" : ""}`}>{format(day, "d")}</div>
-              </div>
-              <div className="space-y-2 relative">
-                {dayEvents.map(e => (
-                  <div key={e.id} className={`text-xs p-2 rounded ${e.type === 'thread' ? 'bg-[#0078D4]/10 text-[#0078D4] border border-[#0078D4]/20' : 'bg-[var(--background-muted)] border border-[var(--border)] text-[var(--foreground-muted)]'}`}>
-                    <div className="font-semibold">{format(parseISO(e.start), "HH:mm")} - {format(parseISO(e.end), "HH:mm")}</div>
-                    <div>{e.title}</div>
-                  </div>
-                ))}
-              </div>
+      <div className="flex flex-col border border-[var(--border)] bg-[var(--background)]">
+        {/* Header: Days */}
+        <div className="flex border-b border-[var(--border)] ml-16">
+          {days.map((day) => (
+            <div key={day.toISOString()} className="flex-1 text-center py-2 border-r last:border-r-0 border-[var(--border)]">
+              <div className="text-xs font-semibold uppercase text-[var(--foreground-muted)]">{format(day, "EEE")}</div>
+              <div className={`text-lg mt-1 w-8 h-8 mx-auto flex items-center justify-center rounded-full ${isSameDay(day, new Date()) ? "bg-[var(--primary)] text-white" : ""}`}>{format(day, "d")}</div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Grid Body */}
+        <div className="flex overflow-y-auto h-[600px] relative">
+          {/* Time Gutter */}
+          <div className="w-16 flex-shrink-0 bg-[var(--background)]">
+            {hours.map((hour) => (
+              <div key={hour} className="text-xs text-[var(--foreground-muted)] text-right pr-2 relative" style={{ height: `${HOUR_HEIGHT}px` }}>
+                <span className="absolute -top-2 right-2 bg-[var(--background)] px-1">{hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Days Grid */}
+          <div className="flex flex-1 relative bg-[var(--background-subtle)]">
+            {/* Horizontal Lines for Hours */}
+            <div className="absolute inset-0 pointer-events-none flex flex-col">
+              {hours.map((hour) => (
+                <div key={hour} className="w-full border-t border-[var(--border)]" style={{ height: `${HOUR_HEIGHT}px` }} />
+              ))}
+            </div>
+
+            {days.map((day) => {
+              const dayEvents = events.filter(e => isSameDay(parseISO(e.start), day));
+              return (
+                <div key={day.toISOString()} className="flex-1 relative border-l border-[var(--border)]">
+                  {dayEvents.map(e => {
+                    const start = parseISO(e.start);
+                    const end = parseISO(e.end);
+                    const startMinutes = start.getHours() * 60 + start.getMinutes();
+                    const durationMinutes = (end.getTime() - start.getTime()) / 60000;
+                    
+                    const top = (startMinutes / 60) * HOUR_HEIGHT;
+                    const height = Math.max((durationMinutes / 60) * HOUR_HEIGHT, 20); // Min height 20px
+
+                    return (
+                      <div 
+                        key={e.id} 
+                        className={`absolute inset-x-1 p-1 rounded-md text-xs overflow-hidden leading-tight ${e.type === 'thread' ? 'bg-[#0078D4] text-white border border-[#005a9e]' : 'bg-[var(--primary-light)] border border-[var(--primary)] text-[var(--primary)]'}`}
+                        style={{ top: `${top}px`, height: `${height}px`, zIndex: 10 }}
+                        title={e.title}
+                      >
+                        <div className="font-semibold">{format(start, "HH:mm")} - {format(end, "HH:mm")}</div>
+                        <div className="truncate">{e.title}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   };
 
   const renderDayView = () => {
-    const dayEvents = events.filter(e => isSameDay(parseISO(e.start), currentDate)).sort((a,b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    const dayEvents = events.filter(e => isSameDay(parseISO(e.start), currentDate));
+    const hours = Array.from({ length: 24 }).map((_, i) => i);
+    const HOUR_HEIGHT = 48; // px
+
     return (
-      <div className="border border-[var(--border)] bg-[var(--background)] min-h-[400px] p-4 rounded-lg">
-        <div className="mb-6 border-b border-[var(--border)] pb-4">
-          <h2 className="text-2xl font-bold">{format(currentDate, "EEEE, MMMM d, yyyy")}</h2>
+      <div className="flex flex-col border border-[var(--border)] bg-[var(--background)]">
+        {/* Header */}
+        <div className="flex border-b border-[var(--border)] ml-16">
+          <div className="flex-1 text-center py-4 border-r last:border-r-0 border-[var(--border)]">
+            <div className="text-sm font-semibold uppercase text-[var(--foreground-muted)]">{format(currentDate, "EEEE")}</div>
+            <div className={`text-2xl mt-1 w-12 h-12 mx-auto flex items-center justify-center rounded-full ${isSameDay(currentDate, new Date()) ? "bg-[var(--primary)] text-white" : ""}`}>{format(currentDate, "d")}</div>
+          </div>
         </div>
-        <div className="space-y-4 max-w-2xl">
-          {dayEvents.length === 0 ? (
-            <div className="text-[var(--foreground-muted)] text-center py-10">No events for this day.</div>
-          ) : dayEvents.map(e => (
-            <div key={e.id} className={`p-4 rounded-lg flex items-start justify-between ${e.type === 'thread' ? 'bg-[#0078D4]/10 border border-[#0078D4]/20' : 'bg-[var(--background-subtle)] border border-[var(--border)]'}`}>
-              <div>
-                <h3 className={`font-semibold text-lg ${e.type === 'thread' ? 'text-[#0078D4]' : 'text-[var(--foreground)]'}`}>{e.title}</h3>
-                <p className="text-[var(--foreground-muted)] mt-1">
-                  {format(parseISO(e.start), "h:mm a")} - {format(parseISO(e.end), "h:mm a")}
-                </p>
+
+        {/* Grid Body */}
+        <div className="flex overflow-y-auto h-[600px] relative">
+          {/* Time Gutter */}
+          <div className="w-16 flex-shrink-0 bg-[var(--background)]">
+            {hours.map((hour) => (
+              <div key={hour} className="text-xs text-[var(--foreground-muted)] text-right pr-2 relative" style={{ height: `${HOUR_HEIGHT}px` }}>
+                <span className="absolute -top-2 right-2 bg-[var(--background)] px-1">{hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}</span>
               </div>
-              <span className="text-xs uppercase font-bold tracking-wider opacity-60">
-                {e.type}
-              </span>
+            ))}
+          </div>
+
+          {/* Days Grid */}
+          <div className="flex flex-1 relative bg-[var(--background-subtle)]">
+            {/* Horizontal Lines for Hours */}
+            <div className="absolute inset-0 pointer-events-none flex flex-col">
+              {hours.map((hour) => (
+                <div key={hour} className="w-full border-t border-[var(--border)]" style={{ height: `${HOUR_HEIGHT}px` }} />
+              ))}
             </div>
-          ))}
+
+            <div className="flex-1 relative border-l border-[var(--border)]">
+              {dayEvents.map(e => {
+                const start = parseISO(e.start);
+                const end = parseISO(e.end);
+                const startMinutes = start.getHours() * 60 + start.getMinutes();
+                const durationMinutes = (end.getTime() - start.getTime()) / 60000;
+                
+                const top = (startMinutes / 60) * HOUR_HEIGHT;
+                const height = Math.max((durationMinutes / 60) * HOUR_HEIGHT, 20);
+
+                return (
+                  <div 
+                    key={e.id} 
+                    className={`absolute inset-x-2 p-2 rounded-md text-sm overflow-hidden leading-tight ${e.type === 'thread' ? 'bg-[#0078D4] text-white border border-[#005a9e]' : 'bg-[var(--primary-light)] border border-[var(--primary)] text-[var(--primary)]'}`}
+                    style={{ top: `${top}px`, height: `${height}px`, zIndex: 10 }}
+                    title={e.title}
+                  >
+                    <div className="font-semibold">{format(start, "HH:mm")} - {format(end, "HH:mm")}</div>
+                    <div className="truncate font-medium">{e.title}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     );
