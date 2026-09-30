@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { bookings, eventTypes, users } from "@/db/schema";
+import { bookings, eventTypes, users, availabilityRules, calendarConnections } from "@/db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Calendar, Clock, Video, Users } from "lucide-react";
@@ -46,6 +46,16 @@ export default async function DashboardPage() {
     )
     .orderBy(bookings.startTime)
     .limit(5);
+
+  const [eventTypesCount, rulesCount, connectionsCount] = await Promise.all([
+    db.select({ id: eventTypes.id }).from(eventTypes).where(eq(eventTypes.userId, dbUser.id)).limit(1),
+    db.select({ id: availabilityRules.id }).from(availabilityRules).where(eq(availabilityRules.userId, dbUser.id)).limit(1),
+    db.select({ id: calendarConnections.id }).from(calendarConnections).where(and(eq(calendarConnections.userId, dbUser.id), eq(calendarConnections.isActive, true))).limit(1)
+  ]);
+
+  const hasEventTypes = eventTypesCount.length > 0;
+  const hasAvailability = rulesCount.length > 0;
+  const hasCalendar = connectionsCount.length > 0;
 
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8 max-w-7xl mx-auto">
@@ -127,15 +137,27 @@ export default async function DashboardPage() {
             <div className="p-6 pt-0 flex flex-col gap-4 border-t border-[var(--border)] mt-4">
               <Link href="/dashboard/event-types" className="group flex items-center justify-between text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors mt-4">
                 1. Create an Event Type
-                <div className="h-6 w-6 rounded-full bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center">✓</div>
+                {hasEventTypes ? (
+                  <div className="h-6 w-6 rounded-full bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center">✓</div>
+                ) : (
+                  <div className="h-6 w-6 rounded-full bg-[var(--background-muted)] border border-[var(--border)] text-[var(--foreground-muted)] flex items-center justify-center"></div>
+                )}
               </Link>
               <Link href="/dashboard/availability" className="group flex items-center justify-between text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">
                 2. Set Availability
-                <div className="h-6 w-6 rounded-full bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center">✓</div>
+                {hasAvailability ? (
+                  <div className="h-6 w-6 rounded-full bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center">✓</div>
+                ) : (
+                  <div className="h-6 w-6 rounded-full bg-[var(--background-muted)] border border-[var(--border)] text-[var(--foreground-muted)] flex items-center justify-center"></div>
+                )}
               </Link>
               <Link href="/dashboard/integrations" className="group flex items-center justify-between text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">
                 3. Connect Calendar
-                <div className="h-6 w-6 rounded-full bg-[var(--background-muted)] border border-[var(--border)] text-[var(--foreground-muted)] flex items-center justify-center"></div>
+                {hasCalendar ? (
+                  <div className="h-6 w-6 rounded-full bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center">✓</div>
+                ) : (
+                  <div className="h-6 w-6 rounded-full bg-[var(--background-muted)] border border-[var(--border)] text-[var(--foreground-muted)] flex items-center justify-center"></div>
+                )}
               </Link>
             </div>
           </Card>
