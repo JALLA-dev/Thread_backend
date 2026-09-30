@@ -13,6 +13,7 @@ interface OutlookConnectionProps {
   connection: {
     id: string;
     email: string | null;
+    accountName: string | null;
   } | undefined;
 }
 
@@ -128,7 +129,7 @@ export function OutlookConnection({ connection }: OutlookConnectionProps) {
                 My Outlook Calendar
               </p>
               <p className="text-sm text-[var(--foreground-muted)] mt-0.5">
-                Connected as {connection.email || "Unknown email"}
+                Connected: {connection.accountName || connection.email || "Unknown account"}
               </p>
             </div>
             <div className="flex gap-2">

@@ -22,7 +22,7 @@ export default async function CalendarPage() {
     .limit(1);
     
   const outlookConnection = connections.length > 0 && connections[0].isActive
-    ? { id: connections[0].id, email: connections[0].email }
+    ? { id: connections[0].id, email: connections[0].email, accountName: connections[0].accountName }
     : undefined;
 
   return (
@@ -36,11 +36,9 @@ export default async function CalendarPage() {
         </p>
       </div>
 
-      {!outlookConnection && (
-        <div className="mb-2">
-          <OutlookConnection connection={outlookConnection} />
-        </div>
-      )}
+      <div className="mb-2">
+        <OutlookConnection connection={outlookConnection} />
+      </div>
       
       <CalendarClient isConnected={!!outlookConnection} />
     </div>

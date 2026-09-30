@@ -130,6 +130,7 @@ export async function GET(request: Request) {
           clientId: clientId,
           clientSecret: clientSecret,
           tenantId: tenantId,
+          accountName: graphUser.displayName || null,
           updatedAt: new Date(),
         })
         .where(eq(calendarConnections.id, existing[0].id));
@@ -148,6 +149,7 @@ export async function GET(request: Request) {
           clientId: clientId,
           clientSecret: clientSecret,
           tenantId: tenantId,
+          accountName: graphUser.displayName || null,
         });
     }
 

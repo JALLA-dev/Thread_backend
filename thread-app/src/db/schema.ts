@@ -214,6 +214,7 @@ export const calendarConnections = pgTable(
     clientId: text("client_id"),
     clientSecret: text("client_secret"),
     tenantId: text("tenant_id"),
+    accountName: text("account_name"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
