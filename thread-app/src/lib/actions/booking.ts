@@ -107,6 +107,7 @@ export async function createBooking(formData: FormData) {
     const guestName = formData.get("guestName") as string;
     const guestEmail = formData.get("guestEmail") as string;
     const guestNotes = (formData.get("guestNotes") as string) || null;
+    const durationOverride = formData.get("duration") as string;
     const guestTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
     if (!eventTypeId || !hostUserId || !date || !time || !guestName || !guestEmail) {
@@ -124,7 +125,8 @@ export async function createBooking(formData: FormData) {
     const eventType = eventList[0];
 
     const startTime = new Date(`${date}T${time}:00`);
-    const endTime = new Date(startTime.getTime() + eventType.durationMinutes * 60000);
+    const actualDuration = durationOverride ? parseInt(durationOverride, 10) : eventType.durationMinutes;
+    const endTime = new Date(startTime.getTime() + actualDuration * 60000);
 
     let assignedMemberId = null;
 

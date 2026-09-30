@@ -19,6 +19,7 @@ interface BookingFormProps {
     title: string;
     durationMinutes: number;
     description: string | null;
+    metadata?: any;
   };
 }
 
@@ -29,6 +30,11 @@ export function BookingForm({ user, event }: BookingFormProps) {
   const [step, setStep] = useState<"calendar" | "ai" | "form" | "success">("calendar");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const availableServices: any[] = event.metadata?.services || [];
+  const [selectedServices, setSelectedServices] = useState<any[]>([]);
+
+  const totalDuration = event.durationMinutes + selectedServices.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
 
   // Generate next 14 days for the simple calendar
   const days = Array.from({ length: 14 }).map((_, i) => {
@@ -44,7 +50,7 @@ export function BookingForm({ user, event }: BookingFormProps) {
       
       const fetchSlots = async () => {
         try {
-          const res = await fetch(`/api/booking-slots?eventTypeId=${event.id}&date=${dateStr}&timeZone=${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+          const res = await fetch(`/api/booking-slots?eventTypeId=${event.id}&date=${dateStr}&timeZone=${Intl.DateTimeFormat().resolvedOptions().timeZone}&duration=${totalDuration}`);
           const data = await res.json();
           if (res.ok && data.slots) {
             // slots are returned as { start: ISOString, end: ISOString }
@@ -65,7 +71,15 @@ export function BookingForm({ user, event }: BookingFormProps) {
       
       fetchSlots();
     }
-  }, [selectedDate, event.id, step]);
+  }, [selectedDate, event.id, step, totalDuration]);
+
+  const handleServiceToggle = (service: any) => {
+    setSelectedServices(prev => 
+      prev.some(s => s.id === service.id)
+        ? prev.filter(s => s.id !== service.id)
+        : [...prev, service]
+    );
+  };
 
   const handleBook = async (formData: FormData) => {
     if (!selectedDate || !selectedTime) return;
@@ -77,6 +91,13 @@ export function BookingForm({ user, event }: BookingFormProps) {
     formData.append("hostUserId", user.id);
     formData.append("date", selectedDate.toISOString().split("T")[0]);
     formData.append("time", selectedTime);
+    formData.append("duration", totalDuration.toString());
+    
+    if (selectedServices.length > 0) {
+      const currentNotes = formData.get("guestNotes") as string || "";
+      const servicesText = "\\nSelected Add-ons: " + selectedServices.map(s => s.name).join(", ");
+      formData.set("guestNotes", currentNotes + servicesText);
+    }
     
     const result = await createBooking(formData);
     
@@ -130,7 +151,7 @@ export function BookingForm({ user, event }: BookingFormProps) {
         <div className="space-y-4 mb-8">
           <div className="flex items-center gap-3 text-[var(--foreground-subtle)] font-medium">
             <Clock className="w-5 h-5 text-[var(--foreground-muted)]" />
-            {event.durationMinutes} min
+            {totalDuration} min {selectedServices.length > 0 && <span className="text-xs text-[var(--primary)] bg-[var(--primary-light)] px-2 py-0.5 rounded-full">Modified</span>}
           </div>
           
           {selectedDate && selectedTime && (step === "form") && (
@@ -152,6 +173,26 @@ export function BookingForm({ user, event }: BookingFormProps) {
         {event.description && (
           <div className="text-sm text-[var(--foreground-muted)] leading-relaxed prose prose-sm dark:prose-invert">
             <p>{event.description}</p>
+          </div>
+        )}
+
+        {availableServices.length > 0 && (
+          <div className="mt-8 border-t border-[var(--border)] pt-6">
+            <h3 className="font-semibold text-[var(--foreground)] mb-3">Add-ons & Services</h3>
+            <div className="space-y-3">
+              {availableServices.map((service) => {
+                const isSelected = selectedServices.some(s => s.id === service.id);
+                return (
+                  <label key={service.id} className={cn("flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors", isSelected ? "border-[var(--primary)] bg-[var(--primary)]/5" : "border-[var(--border)] hover:border-[var(--primary)]/30")}>
+                    <input type="checkbox" checked={isSelected} onChange={() => handleServiceToggle(service)} className="mt-1 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)]" />
+                    <div>
+                      <div className="text-sm font-medium text-[var(--foreground)]">{service.name}</div>
+                      {service.durationMinutes > 0 && <div className="text-xs text-[var(--foreground-muted)]">+{service.durationMinutes} min</div>}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

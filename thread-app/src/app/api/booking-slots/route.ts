@@ -5,7 +5,7 @@ import { eq, and, gte, lte } from "drizzle-orm";
 import { getCalendarEvents } from "@/lib/microsoft-graph";
 import { addMinutes, parse, format, isBefore, isAfter, startOfDay, endOfDay, differenceInDays } from "date-fns";
 
-async function getUserAvailableSlots(userId: string, requestedDate: Date, eventType: any) {
+async function getUserAvailableSlots(userId: string, requestedDate: Date, eventType: any, durationMinutes: number) {
   const now = new Date();
   if (isBefore(requestedDate, startOfDay(now))) return [];
   if (differenceInDays(requestedDate, now) > eventType.maximumFutureDays) return [];
@@ -33,8 +33,8 @@ async function getUserAvailableSlots(userId: string, requestedDate: Date, eventT
   let currentSlotStart = parse(`${baseDateStr} ${rule.startTime}`, "yyyy-MM-dd HH:mm", new Date());
   const dayEnd = parse(`${baseDateStr} ${rule.endTime}`, "yyyy-MM-dd HH:mm", new Date());
 
-  while (isBefore(addMinutes(currentSlotStart, eventType.durationMinutes), dayEnd) || currentSlotStart.getTime() === dayEnd.getTime() - eventType.durationMinutes * 60000) {
-    const currentSlotEnd = addMinutes(currentSlotStart, eventType.durationMinutes);
+  while (isBefore(addMinutes(currentSlotStart, durationMinutes), dayEnd) || currentSlotStart.getTime() === dayEnd.getTime() - durationMinutes * 60000) {
+    const currentSlotEnd = addMinutes(currentSlotStart, durationMinutes);
     if (isAfter(currentSlotStart, addMinutes(now, eventType.minimumNoticeMinutes))) {
       slots.push({ start: currentSlotStart, end: currentSlotEnd });
     }
@@ -114,6 +114,7 @@ export async function GET(request: Request) {
     const eventTypeId = url.searchParams.get("eventTypeId");
     const dateParam = url.searchParams.get("date"); // YYYY-MM-DD
     const tzParam = url.searchParams.get("timeZone") || "UTC"; // Guest timezone
+    const durationParam = url.searchParams.get("duration");
 
     if (!eventTypeId || !dateParam) {
       return NextResponse.json({ error: "Missing eventTypeId or date" }, { status: 400 });
@@ -130,6 +131,7 @@ export async function GET(request: Request) {
     }
 
     const eventType = eventTypeResult[0];
+    const requestedDuration = durationParam ? parseInt(durationParam, 10) : eventType.durationMinutes;
     const requestedDate = new Date(dateParam);
     
     if (isNaN(requestedDate.getTime())) {
@@ -147,7 +149,7 @@ export async function GET(request: Request) {
 
       if (eventType.routingStrategy === "round_robin") {
         // Round Robin: Combine all slots where at least one person is available
-        const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType)));
+        const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType, requestedDuration)));
         
         // Deduplicate slots based on start time
         const uniqueSlotsMap = new Map<number, { start: Date; end: Date }>();
@@ -158,7 +160,7 @@ export async function GET(request: Request) {
         allAvailableSlots = Array.from(uniqueSlotsMap.values());
       } else if (eventType.routingStrategy === "manual") {
         // Manual / Collective: Only slots where ALL members are available
-        const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType)));
+        const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType, requestedDuration)));
         
         if (allMemberSlots.length > 0) {
           const firstMemberSlots = allMemberSlots[0];
@@ -170,7 +172,7 @@ export async function GET(request: Request) {
         }
       } else {
         // Fallback for fixed routing (needs a specific host, but we'll default to round robin for now)
-        const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType)));
+        const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType, requestedDuration)));
         const uniqueSlotsMap = new Map<number, { start: Date; end: Date }>();
         allMemberSlots.flat().forEach(slot => {
           uniqueSlotsMap.set(slot.start.getTime(), slot);
@@ -180,7 +182,7 @@ export async function GET(request: Request) {
       
     } else {
       // Personal Scheduling
-      allAvailableSlots = await getUserAvailableSlots(eventType.userId, requestedDate, eventType);
+      allAvailableSlots = await getUserAvailableSlots(eventType.userId, requestedDate, eventType, requestedDuration);
     }
 
     // Sort slots chronologically
