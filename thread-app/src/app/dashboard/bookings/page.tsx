@@ -33,6 +33,7 @@ export default async function BookingsPage(props: {
       status: bookings.status,
       timeZone: bookings.timeZone,
       createdAt: bookings.createdAt,
+      conferenceLink: bookings.conferenceLink,
       eventTitle: eventTypes.title,
       eventDuration: eventTypes.durationMinutes,
     })
@@ -129,7 +130,13 @@ export default async function BookingsPage(props: {
                       </div>
                       <div className="flex items-center gap-3 text-sm text-[var(--foreground-muted)]">
                         <LinkIcon className="h-4 w-4" />
-                        Web Conferencing Details
+                        {booking.conferenceLink ? (
+                          <a href={booking.conferenceLink} target="_blank" rel="noreferrer" className="text-[var(--primary)] hover:underline font-medium">
+                            Join Meeting
+                          </a>
+                        ) : (
+                          "No Meeting Link"
+                        )}
                       </div>
                     </div>
                   </div>

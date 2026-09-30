@@ -249,6 +249,8 @@ export async function createBooking(formData: FormData) {
             contentType: "HTML",
             content: `<b>THREAD Meeting</b><br/><br/>Guest: ${guestName} (${guestEmail})<br/><br/>Notes: ${guestNotes || "None"}`,
           },
+          isOnlineMeeting: true,
+          onlineMeetingProvider: "teamsForBusiness",
           start: {
             dateTime: startTime.toISOString(),
             timeZone: "UTC"
@@ -269,9 +271,13 @@ export async function createBooking(formData: FormData) {
         });
 
         if (outlookEvent && outlookEvent.id) {
+          const joinUrl = outlookEvent.onlineMeeting?.joinUrl;
           await db
             .update(bookings)
-            .set({ calendarEventId: outlookEvent.id })
+            .set({ 
+              calendarEventId: outlookEvent.id,
+              ...(joinUrl ? { conferenceLink: joinUrl } : {})
+            })
             .where(eq(bookings.id, newBooking[0].id));
         }
       } catch (err) {

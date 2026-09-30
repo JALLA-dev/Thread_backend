@@ -63,6 +63,8 @@ export async function GET(request: Request) {
               contentType: "HTML",
               content: `<b>THREAD Meeting</b><br/><br/>Guest: ${booking.guestName} (${booking.guestEmail})<br/><br/>Notes: ${booking.guestNotes || "None"}`,
             },
+            isOnlineMeeting: true,
+            onlineMeetingProvider: "teamsForBusiness",
             start: {
               dateTime: booking.startTime.toISOString(),
               timeZone: "UTC"
@@ -83,9 +85,13 @@ export async function GET(request: Request) {
           });
 
           if (outlookEvent && outlookEvent.id) {
+            const joinUrl = outlookEvent.onlineMeeting?.joinUrl;
             await db
               .update(bookings)
-              .set({ calendarEventId: outlookEvent.id })
+              .set({ 
+                calendarEventId: outlookEvent.id,
+                ...(joinUrl ? { conferenceLink: joinUrl } : {})
+              })
               .where(eq(bookings.id, booking.id));
             syncedCount++;
           }
