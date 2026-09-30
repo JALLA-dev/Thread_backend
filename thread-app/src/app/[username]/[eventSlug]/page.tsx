@@ -1,18 +1,7 @@
 import { getPublicEventDetails } from "@/lib/actions/booking";
 import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/booking/BookingForm";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { Geist, Geist_Mono } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 interface BookingPageProps {
   params: Promise<{
@@ -44,7 +33,7 @@ export default async function BookingPage(props: BookingPageProps) {
   }
 
   return (
-    <div className={`min-h-screen bg-[var(--background)] flex flex-col font-sans ${geistSans.variable} ${geistMono.variable}`}>
+    <div className="min-h-screen bg-[var(--background)] flex flex-col font-sans">
       <main className="flex-1 container mx-auto px-4 py-12">
         <div className="flex justify-center mb-8">
           {/* Simple branding or logo could go here */}

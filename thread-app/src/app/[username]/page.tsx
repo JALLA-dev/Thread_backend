@@ -3,19 +3,19 @@ import { users, eventTypes } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// These are internal app routes that must NOT be matched by the [username] dynamic segment
+const RESERVED_PATHS = new Set([
+  "dashboard",
+  "sign-in",
+  "sign-up",
+  "api",
+  "bookings",
+  "_next",
+  "favicon.ico",
+]);
 
 export async function generateMetadata(props: { params: Promise<{ username: string }> }) {
   const params = await props.params;
@@ -31,6 +31,11 @@ export async function generateMetadata(props: { params: Promise<{ username: stri
 export default async function PublicProfilePage(props: { params: Promise<{ username: string }> }) {
   const resolvedParams = await props.params;
   const username = decodeURIComponent(resolvedParams.username);
+
+  // Guard against reserved paths being caught by this dynamic segment
+  if (RESERVED_PATHS.has(username.toLowerCase())) {
+    notFound();
+  }
   
   const userList = await db
     .select({
@@ -63,7 +68,7 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
     );
 
   return (
-    <div className={`min-h-screen bg-[var(--background)] flex flex-col font-sans ${geistSans.variable} ${geistMono.variable}`}>
+    <div className="min-h-screen bg-[var(--background)] flex flex-col font-sans">
       <main className="flex-1 container mx-auto px-4 py-16 max-w-4xl">
         <div className="flex flex-col items-center text-center mb-12">
           {host.imageUrl ? (

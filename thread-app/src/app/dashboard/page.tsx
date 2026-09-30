@@ -8,6 +8,7 @@ import { Calendar, Clock, Video, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
+import { JoinButton } from "@/components/dashboard/JoinButton";
 
 export const metadata = {
   title: "Dashboard",
@@ -116,17 +117,10 @@ export default async function DashboardPage() {
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
-                    {booking.conferenceLink ? (
-                      <a href={booking.conferenceLink} target="_blank" rel="noreferrer">
-                        <Button variant="secondary" size="sm" leftIcon={<Video className="h-4 w-4" />}>
-                          Join
-                        </Button>
-                      </a>
-                    ) : (
-                      <Button variant="secondary" size="sm" disabled leftIcon={<Video className="h-4 w-4" />}>
-                        No Link
-                      </Button>
-                    )}
+                    <JoinButton
+                      bookingId={booking.id}
+                      initialConferenceLink={booking.conferenceLink}
+                    />
                     <Link href={`/bookings/${booking.id}/reschedule`}>
                       <Button variant="outline" size="sm">Reschedule</Button>
                     </Link>
