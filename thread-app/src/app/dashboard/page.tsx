@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { bookings, eventTypes, users, availabilityRules, calendarConnections } from "@/db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Calendar, Clock, Video, Users } from "lucide-react";
+import { Calendar, Clock, Video } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
@@ -71,11 +71,6 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href={`/${dbUser.username}`} target="_blank">
-            <Button variant="outline" leftIcon={<Users className="h-4 w-4" />}>
-              View public page
-            </Button>
-          </Link>
           <Link href="/dashboard/event-types/new">
             <Button variant="primary">
               New Event Type
