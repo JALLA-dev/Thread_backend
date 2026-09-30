@@ -13,11 +13,10 @@ export const metadata = {
   title: "Bookings",
 };
 
-export default async function BookingsPage({
-  searchParams,
-}: {
-  searchParams: { tab?: string };
+export default async function BookingsPage(props: {
+  searchParams: Promise<{ tab?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
