@@ -33,6 +33,7 @@ export default async function DashboardPage() {
       startTime: bookings.startTime,
       endTime: bookings.endTime,
       status: bookings.status,
+      conferenceLink: bookings.conferenceLink,
       eventType: eventTypes.title,
     })
     .from(bookings)
@@ -115,9 +116,17 @@ export default async function DashboardPage() {
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="secondary" size="sm" leftIcon={<Video className="h-4 w-4" />}>
-                      Join
-                    </Button>
+                    {booking.conferenceLink ? (
+                      <a href={booking.conferenceLink} target="_blank" rel="noreferrer">
+                        <Button variant="secondary" size="sm" leftIcon={<Video className="h-4 w-4" />}>
+                          Join
+                        </Button>
+                      </a>
+                    ) : (
+                      <Button variant="secondary" size="sm" disabled leftIcon={<Video className="h-4 w-4" />}>
+                        No Link
+                      </Button>
+                    )}
                     <Link href={`/bookings/${booking.id}/reschedule`}>
                       <Button variant="outline" size="sm">Reschedule</Button>
                     </Link>
