@@ -11,58 +11,57 @@ interface JoinButtonProps {
 
 export function JoinButton({ bookingId, initialConferenceLink }: JoinButtonProps) {
   const [conferenceLink, setConferenceLink] = useState<string | null>(initialConferenceLink);
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // If we already have a link, show the Join button directly
-  if (conferenceLink) {
-    return (
-      <a href={conferenceLink} target="_blank" rel="noreferrer">
-        <Button variant="secondary" size="sm" leftIcon={<Video className="h-4 w-4" />}>
-          Join
-        </Button>
-      </a>
-    );
-  }
+  const handleJoin = async () => {
+    setErrorMessage(null);
 
-  // No link yet — offer to create one
-  const handleCreateMeeting = async () => {
-    setIsCreating(true);
-    setError(null);
+    // 1. If we already have the Teams link, open it directly
+    if (conferenceLink) {
+      window.open(conferenceLink, "_blank", "noreferrer");
+      return;
+    }
+
+    // 2. If no link exists yet, request creation via Microsoft Graph
+    setIsLoading(true);
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/create-meeting`, { method: "POST" });
+      const res = await fetch(`/api/bookings/${bookingId}/create-meeting`, {
+        method: "POST",
+      });
       const data = await res.json();
+
       if (!res.ok || !data.conferenceLink) {
-        setError(data.error ?? "Could not create meeting link.");
+        setErrorMessage(data.error || "Meeting link is not available.");
       } else {
         setConferenceLink(data.conferenceLink);
-        // Immediately open the meeting link
         window.open(data.conferenceLink, "_blank", "noreferrer");
       }
     } catch {
-      setError("Could not create meeting link.");
+      setErrorMessage("Meeting link is not available.");
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 items-start">
       <Button
         variant="secondary"
         size="sm"
         leftIcon={<Video className="h-4 w-4" />}
-        loading={isCreating}
-        onClick={handleCreateMeeting}
-        title="Create Teams meeting link"
+        loading={isLoading}
+        onClick={handleJoin}
+        title="Join Microsoft Teams meeting"
       >
-        Create Link
+        Join
       </Button>
-      {error && (
-        <span className="text-xs text-[var(--destructive)] max-w-[140px] leading-tight">
-          {error}
+      {errorMessage && (
+        <span className="text-xs text-[var(--destructive)] max-w-[160px] leading-tight">
+          {errorMessage}
         </span>
       )}
     </div>
   );
 }
+
