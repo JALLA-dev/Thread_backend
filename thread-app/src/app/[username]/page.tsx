@@ -19,7 +19,8 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(props: { params: Promise<{ username: string }> }) {
   const params = await props.params;
-  const userList = await db.select({ name: users.firstName, username: users.username }).from(users).where(eq(users.username, params.username)).limit(1);
+  const username = decodeURIComponent(params.username);
+  const userList = await db.select({ name: users.firstName, username: users.username }).from(users).where(eq(users.username, username)).limit(1);
   if (userList.length === 0) return { title: "Not Found" };
   
   return {
@@ -28,7 +29,8 @@ export async function generateMetadata(props: { params: Promise<{ username: stri
 }
 
 export default async function PublicProfilePage(props: { params: Promise<{ username: string }> }) {
-  const params = await props.params;
+  const resolvedParams = await props.params;
+  const username = decodeURIComponent(resolvedParams.username);
   
   const userList = await db
     .select({
@@ -39,7 +41,7 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
       imageUrl: users.imageUrl,
     })
     .from(users)
-    .where(eq(users.username, params.username))
+    .where(eq(users.username, username))
     .limit(1);
 
   if (userList.length === 0) {
