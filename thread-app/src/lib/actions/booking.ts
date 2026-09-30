@@ -102,15 +102,14 @@ export async function createBooking(formData: FormData) {
   try {
     const eventTypeId = formData.get("eventTypeId") as string;
     let hostUserId = formData.get("hostUserId") as string;
-    const date = formData.get("date") as string;
-    const time = formData.get("time") as string;
+    const startTimeIso = formData.get("startTimeIso") as string;
     const guestName = formData.get("guestName") as string;
     const guestEmail = formData.get("guestEmail") as string;
     const guestNotes = (formData.get("guestNotes") as string) || null;
     const durationOverride = formData.get("duration") as string;
     const guestTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
-    if (!eventTypeId || !hostUserId || !date || !time || !guestName || !guestEmail) {
+    if (!eventTypeId || !hostUserId || !startTimeIso || !guestName || !guestEmail) {
       return { error: "Missing required fields" };
     }
 
@@ -124,7 +123,7 @@ export async function createBooking(formData: FormData) {
     if (eventList.length === 0) return { error: "Event type not found or inactive." };
     const eventType = eventList[0];
 
-    const startTime = new Date(`${date}T${time}:00`);
+    const startTime = new Date(startTimeIso);
     const actualDuration = durationOverride ? parseInt(durationOverride, 10) : eventType.durationMinutes;
     const endTime = new Date(startTime.getTime() + actualDuration * 60000);
 

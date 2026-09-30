@@ -25,8 +25,8 @@ interface BookingFormProps {
 
 export function BookingForm({ user, event }: BookingFormProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<{iso: string, formatted: string}[]>([]);
+  const [selectedTime, setSelectedTime] = useState<{iso: string, formatted: string} | null>(null);
   const [step, setStep] = useState<"calendar" | "ai" | "form" | "success">("calendar");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +53,14 @@ export function BookingForm({ user, event }: BookingFormProps) {
           const res = await fetch(`/api/booking-slots?eventTypeId=${event.id}&date=${dateStr}&timeZone=${Intl.DateTimeFormat().resolvedOptions().timeZone}&duration=${totalDuration}`);
           const data = await res.json();
           if (res.ok && data.slots) {
-            // slots are returned as { start: ISOString, end: ISOString }
-            const formattedTimes = data.slots.map((s: {start: string}) => {
+            const slotsWithIso = data.slots.map((s: {start: string}) => {
               const d = new Date(s.start);
-              return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              return {
+                iso: s.start,
+                formatted: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+              };
             });
-            setAvailableSlots(formattedTimes);
+            setAvailableSlots(slotsWithIso);
           } else {
             setAvailableSlots([]);
           }
@@ -89,8 +91,7 @@ export function BookingForm({ user, event }: BookingFormProps) {
     
     formData.append("eventTypeId", event.id);
     formData.append("hostUserId", user.id);
-    formData.append("date", selectedDate.toISOString().split("T")[0]);
-    formData.append("time", selectedTime);
+    formData.append("startTimeIso", selectedTime.iso);
     formData.append("duration", totalDuration.toString());
     
     if (selectedServices.length > 0) {
@@ -110,9 +111,11 @@ export function BookingForm({ user, event }: BookingFormProps) {
     }
   };
 
-  const handleAiSlotSelect = (date: Date, time: string) => {
+  const handleAiSlotSelect = (date: Date, timeStr: string) => {
     setSelectedDate(date);
-    setSelectedTime(time);
+    // Approximate the ISO string for AI fallback (assumes local time)
+    const iso = new Date(`${date.toISOString().split("T")[0]}T${timeStr}:00`).toISOString();
+    setSelectedTime({ iso, formatted: timeStr });
     setStep("form");
   };
 
@@ -134,7 +137,7 @@ export function BookingForm({ user, event }: BookingFormProps) {
           </p>
           <p className="text-sm flex items-center gap-2 text-[var(--foreground-muted)] mt-1">
             <Clock className="w-4 h-4" />
-            {selectedTime}
+            {selectedTime?.formatted}
           </p>
         </div>
       </Card>
@@ -158,7 +161,7 @@ export function BookingForm({ user, event }: BookingFormProps) {
             <div className="flex items-start gap-3 text-[var(--foreground-subtle)] font-medium text-left">
               <CalendarIcon className="w-5 h-5 text-[var(--foreground-muted)] mt-0.5 shrink-0" />
               <div>
-                <p>{selectedTime}</p>
+                <p>{selectedTime.formatted}</p>
                 <p>{selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
               </div>
             </div>
@@ -280,20 +283,20 @@ export function BookingForm({ user, event }: BookingFormProps) {
                     
                     <div className="flex-1 overflow-y-auto pr-2 space-y-2 h-[280px]">
                       {availableSlots.length > 0 ? (
-                        availableSlots.map((time, i) => (
+                        availableSlots.map((slot, i) => (
                           <div key={i} className="flex gap-2">
                             <button
-                              onClick={() => setSelectedTime(time)}
+                              onClick={() => setSelectedTime(slot)}
                               className={cn(
                                 "flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border",
-                                selectedTime === time 
+                                selectedTime?.iso === slot.iso 
                                   ? "bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)] shadow-lg" 
                                   : "bg-transparent text-[var(--primary)] border-[var(--primary)] hover:bg-[var(--primary-light)]"
                               )}
                             >
-                              {time}
+                              {slot.formatted}
                             </button>
-                            {selectedTime === time && (
+                            {selectedTime?.iso === slot.iso && (
                               <button
                                 onClick={() => setStep("form")}
                                 className="bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl px-4 text-sm font-bold shadow-lg animate-scale-in"
