@@ -22,7 +22,7 @@ interface CalendarEvent {
 
 export function CalendarClient({ isConnected = false }: { isConnected?: boolean }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<ViewType>("month");
+  const [view, setView] = useState<ViewType>("week");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
