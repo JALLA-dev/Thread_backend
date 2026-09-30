@@ -187,7 +187,7 @@ export async function rejectBooking(bookingId: string) {
 
     await db
       .update(bookings)
-      .set({ status: "rejected", updatedAt: new Date() })
+      .set({ status: "cancelled", updatedAt: new Date() })
       .where(eq(bookings.id, bookingId));
 
     // Send Rejection Email

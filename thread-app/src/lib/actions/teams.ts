@@ -95,7 +95,7 @@ export async function getTeamDetails(teamId: string) {
     .select({
       id: teamMembers.id,
       userId: users.id,
-      name: users.name,
+      name: users.firstName,
       email: users.email,
       role: teamMembers.role,
       joinedAt: teamMembers.joinedAt,

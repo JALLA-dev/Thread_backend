@@ -230,7 +230,7 @@ export async function createBooking(formData: FormData) {
       // Audit Log for request
       await db.insert(auditLogs).values({
         actorUserId: hostUserId,
-        action: "booking_requested",
+        action: "booking_created",
         targetType: "booking",
         targetId: newBooking[0].id,
         metadata: { guestName, guestEmail }

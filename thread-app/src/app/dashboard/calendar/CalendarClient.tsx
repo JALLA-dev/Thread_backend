@@ -197,7 +197,7 @@ export function CalendarClient({ isConnected = false }: { isConnected?: boolean 
               Connected
             </Badge>
           ) : (
-            <Badge variant="secondary" className="hidden md:flex gap-1 text-[var(--foreground-muted)]">
+            <Badge variant="default" className="hidden md:flex gap-1 text-[var(--foreground-muted)]">
               <AlertCircle className="h-3 w-3" />
               Not Connected
             </Badge>

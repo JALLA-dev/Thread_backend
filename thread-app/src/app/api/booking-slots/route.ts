@@ -156,8 +156,8 @@ export async function GET(request: Request) {
         });
         
         allAvailableSlots = Array.from(uniqueSlotsMap.values());
-      } else if (eventType.routingStrategy === "collective") {
-        // Collective: Only slots where ALL members are available
+      } else if (eventType.routingStrategy === "manual") {
+        // Manual / Collective: Only slots where ALL members are available
         const allMemberSlots = await Promise.all(members.map(m => getUserAvailableSlots(m.userId, requestedDate, eventType)));
         
         if (allMemberSlots.length > 0) {

@@ -87,7 +87,7 @@ export function TeamMembersClient({ teamId, members, isOwnerOrAdmin }: TeamMembe
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-[var(--foreground)]">{member.name || "Unknown User"}</p>
-                <Badge variant={member.role === "owner" ? "primary" : "secondary"} className="text-xs py-0 px-2 h-5">
+                <Badge variant={member.role === "owner" ? "primary" : "default"} className="text-xs py-0 px-2 h-5">
                   {member.role}
                 </Badge>
               </div>
