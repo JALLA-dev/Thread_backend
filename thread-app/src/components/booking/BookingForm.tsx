@@ -25,8 +25,10 @@ interface BookingFormProps {
 
 export function BookingForm({ user, event }: BookingFormProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [availableDaysMap, setAvailableDaysMap] = useState<Record<string, {iso: string, formatted: string}[]>>({});
   const [availableSlots, setAvailableSlots] = useState<{iso: string, formatted: string}[]>([]);
   const [selectedTime, setSelectedTime] = useState<{iso: string, formatted: string} | null>(null);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
   const [step, setStep] = useState<"calendar" | "ai" | "form" | "success">("calendar");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,37 +45,56 @@ export function BookingForm({ user, event }: BookingFormProps) {
     return d;
   });
 
+  // Fetch availability for the next 30 days upfront
   useEffect(() => {
-    if (selectedDate && step === "calendar") {
-      // Fetch available slots for this date
-      const dateStr = selectedDate.toISOString().split("T")[0];
-      
-      const fetchSlots = async () => {
-        try {
-          const res = await fetch(`/api/booking-slots?eventTypeId=${event.id}&date=${dateStr}&timeZone=${Intl.DateTimeFormat().resolvedOptions().timeZone}&duration=${totalDuration}`);
-          const data = await res.json();
-          if (res.ok && data.slots) {
-            const slotsWithIso = data.slots.map((s: {start: string}) => {
+    const fetchAvailability = async () => {
+      setIsLoadingAvailability(true);
+      try {
+        const today = new Date();
+        const endDate = new Date();
+        endDate.setDate(today.getDate() + 30);
+        
+        const startDateStr = today.toISOString().split("T")[0];
+        const endDateStr = endDate.toISOString().split("T")[0];
+        
+        const res = await fetch(`/api/booking-calendar?eventTypeId=${event.id}&startDate=${startDateStr}&endDate=${endDateStr}&duration=${totalDuration}`);
+        const data = await res.json();
+        
+        if (res.ok && data.days) {
+          const map: Record<string, {iso: string, formatted: string}[]> = {};
+          
+          for (const [dateStr, slots] of Object.entries(data.days as Record<string, any[]>)) {
+            map[dateStr] = slots.map(s => {
               const d = new Date(s.start);
               return {
                 iso: s.start,
                 formatted: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
               };
             });
-            setAvailableSlots(slotsWithIso);
-          } else {
-            setAvailableSlots([]);
           }
-        } catch (err) {
-          console.error("Failed to fetch slots", err);
-          setAvailableSlots([]);
+          setAvailableDaysMap(map);
         }
-        setSelectedTime(null);
-      };
-      
-      fetchSlots();
+      } catch (err) {
+        console.error("Failed to fetch availability calendar", err);
+      } finally {
+        setIsLoadingAvailability(false);
+      }
+    };
+    
+    fetchAvailability();
+  }, [event.id, totalDuration]);
+
+  // When selectedDate changes, just pull from the map
+  useEffect(() => {
+    if (selectedDate && step === "calendar") {
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      // TimeZone calculation could cause slight mismatch if local timezone date differs from UTC ISO date
+      // For a more robust approach, we format the local date exactly:
+      const localDateStr = `${selectedDate.getFullYear()}-${(selectedDate.getMonth()+1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`;
+      setAvailableSlots(availableDaysMap[localDateStr] || []);
+      setSelectedTime(null);
     }
-  }, [selectedDate, event.id, step, totalDuration]);
+  }, [selectedDate, availableDaysMap, step]);
 
   const handleServiceToggle = (service: any) => {
     setSelectedServices(prev => 
@@ -251,22 +272,31 @@ export function BookingForm({ user, event }: BookingFormProps) {
                     
                     {/* Days */}
                     {days.map((date, i) => {
+                      const localDateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                      const hasSlots = availableDaysMap[localDateStr] && availableDaysMap[localDateStr].length > 0;
                       const isSelected = selectedDate?.toDateString() === date.toDateString();
+                      
                       return (
-                        <div key={i} className="aspect-square p-1">
+                        <div key={i} className="aspect-square p-1 relative">
                           <button
                             onClick={() => {
                               setSelectedDate(date);
                               setSelectedTime(null);
                             }}
+                            disabled={!hasSlots || isLoadingAvailability}
                             className={cn(
-                              "w-full h-full rounded-full flex items-center justify-center text-sm font-medium transition-all",
+                              "w-full h-full rounded-full flex items-center justify-center text-sm font-medium transition-all relative",
                               isSelected 
                                 ? "bg-[var(--primary)] text-[var(--primary-foreground)] font-bold shadow-md shadow-[var(--primary)]/20" 
-                                : "bg-[var(--background-subtle)] text-[var(--primary)] hover:bg-[var(--primary-light)] border border-[var(--primary-light)]"
+                                : hasSlots
+                                  ? "bg-[var(--background-subtle)] text-[var(--primary)] hover:bg-[var(--primary-light)] border border-[var(--primary-light)]"
+                                  : "text-[var(--foreground-muted)] opacity-30 cursor-not-allowed"
                             )}
                           >
                             {date.getDate()}
+                            {hasSlots && !isSelected && (
+                              <span className="absolute bottom-1 w-1 h-1 bg-[var(--primary)] rounded-full" />
+                            )}
                           </button>
                         </div>
                       );
